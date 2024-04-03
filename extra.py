@@ -21,9 +21,17 @@ def highlight_rows(file_path, sheet_name, column_name, search_values):
                         cell.fill = yellow_fill
                     break
 
+    dir_path, file_name = os.path.split(file_path)
     new_file_name = 'highlighted_' + file_name
     new_file_path = os.path.join(dir_path, new_file_name)
     workbook.save(new_file_path)
+
+def find_all_matches(text, identifier, num_chars, extraction_type):
+    if extraction_type == "1":
+        pattern = f"{identifier}(.{{0,{num_chars}}})"
+    else:
+        pattern = f"{identifier}((?:\\w+\\s*){{0,{num_chars}}})"
+    return [match.group(1).strip() for match in re.finditer(pattern, text)]
 
 def process_log_data():
     log_data = []
@@ -42,11 +50,7 @@ def process_log_data():
         extraction_type = input("Do you want to extract characters or words after the identifier? (1 for characters, 2 for words) ")
         num = int(input("How many characters/words after the identifier do you want to extract? "))
 
-        def find_all_matches(text, identifier, num_chars):
-            pattern = f"{identifier}(.{{0,{num_chars}}})" if extraction_type == "1" else f"{identifier}((?:\\w+\\s*){{0,{num_chars}}})"
-            return [match.group(1) for match in re.finditer(pattern, text)]
-
-        data_frame['result'] = data_frame['Data'].apply(lambda x: {identifier: find_all_matches(x, identifier, num) for identifier in identifiers})
+        data_frame['result'] = data_frame['Data'].apply(lambda x: "\n".join([f"{identifier}: {match}" for identifier in identifiers for match in find_all_matches(x, identifier, num, extraction_type)]))
     else:
         search_values = [str(value) for value in input("Please enter the values to search for, separated by commas: ").split(',')]
         data_frame['result'] = data_frame['Data'].apply(lambda x: [value if value in str(x) else "No such result found" for value in search_values])
